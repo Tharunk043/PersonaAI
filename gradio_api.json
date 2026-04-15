@@ -1,0 +1,167 @@
+{
+  "named_endpoints": {
+    "/resize_image": {
+      "parameters": [
+        {
+          "label": "Upload your image",
+          "parameter_name": "image",
+          "parameter_has_default": false,
+          "parameter_default": null,
+          "type": "Blob | File | Buffer",
+          "python_type": {
+            "type": "dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any))",
+            "description": "For input, either path or url must be provided. For output, path is always provided."
+          },
+          "component": "Image",
+          "example_input": {
+            "path": "https://raw.githubusercontent.com/gradio-app/gradio/main/test/test_files/bus.png",
+            "meta": {
+              "_type": "gradio.FileData"
+            },
+            "orig_name": "bus.png",
+            "url": "https://raw.githubusercontent.com/gradio-app/gradio/main/test/test_files/bus.png"
+          }
+        }
+      ],
+      "returns": [
+        {
+          "label": "Upload your image",
+          "type": "string",
+          "python_type": {
+            "type": "dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any))",
+            "description": ""
+          },
+          "component": "Image"
+        }
+      ],
+      "type": {
+        "generator": false,
+        "cancel": false
+      }
+    },
+    "/video": {
+      "parameters": [
+        {
+          "label": "Upload your image",
+          "parameter_name": "image",
+          "parameter_has_default": false,
+          "parameter_default": null,
+          "type": "Blob | File | Buffer",
+          "python_type": {
+            "type": "dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any))",
+            "description": "For input, either path or url must be provided. For output, path is always provided."
+          },
+          "component": "Image",
+          "example_input": {
+            "path": "https://raw.githubusercontent.com/gradio-app/gradio/main/test/test_files/bus.png",
+            "meta": {
+              "_type": "gradio.FileData"
+            },
+            "orig_name": "bus.png",
+            "url": "https://raw.githubusercontent.com/gradio-app/gradio/main/test/test_files/bus.png"
+          }
+        },
+        {
+          "label": "Seed",
+          "parameter_name": "seed",
+          "parameter_has_default": true,
+          "parameter_default": 325044460070385150,
+          "type": "number",
+          "python_type": {
+            "type": "float",
+            "description": ""
+          },
+          "component": "Slider",
+          "example_input": 0,
+          "description": "numeric value between 0 and 9223372036854775807"
+        },
+        {
+          "label": "Randomize seed",
+          "parameter_name": "randomize_seed",
+          "parameter_has_default": true,
+          "parameter_default": true,
+          "type": "boolean",
+          "python_type": {
+            "type": "bool",
+            "description": ""
+          },
+          "component": "Checkbox",
+          "example_input": true
+        },
+        {
+          "label": "Motion bucket id",
+          "parameter_name": "motion_bucket_id",
+          "parameter_has_default": true,
+          "parameter_default": 127,
+          "type": "number",
+          "python_type": {
+            "type": "float",
+            "description": ""
+          },
+          "component": "Slider",
+          "example_input": 1,
+          "description": "numeric value between 1 and 255"
+        },
+        {
+          "label": "Frames per second",
+          "parameter_name": "fps_id",
+          "parameter_has_default": true,
+          "parameter_default": 6,
+          "type": "number",
+          "python_type": {
+            "type": "float",
+            "description": ""
+          },
+          "component": "Slider",
+          "example_input": 5,
+          "description": "numeric value between 5 and 30"
+        }
+      ],
+      "returns": [
+        {
+          "label": "value_6",
+          "type": "",
+          "python_type": {
+            "type": "dict(video: filepath, subtitles: filepath | None)",
+            "description": ""
+          },
+          "component": "Video"
+        },
+        {
+          "label": "Seed",
+          "type": "number",
+          "python_type": {
+            "type": "float",
+            "description": "numeric value between 0 and 9223372036854775807"
+          },
+          "component": "Slider",
+          "description": "numeric value between 0 and 9223372036854775807"
+        }
+      ],
+      "type": {
+        "generator": false,
+        "cancel": false
+      }
+    },
+    "/get_random_value": {
+      "parameters": [],
+      "returns": [
+        {
+          "label": "Seed",
+          "type": "number",
+          "python_type": {
+            "type": "float",
+            "description": "numeric value between 0 and 9223372036854775807"
+          },
+          "component": "Slider",
+          "description": "numeric value between 0 and 9223372036854775807"
+        }
+      ],
+      "type": {
+        "generator": false,
+        "cancel": false
+      }
+    }
+  },
+  "unnamed_endpoints": {}
+}
