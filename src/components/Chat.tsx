@@ -6,7 +6,7 @@ import { generateChatResponse, Message, ChatError } from "../services/groq";
 import { TextToSpeech } from "../utils/textToSpeech";
 import VoiceSettings from "./VoiceSettings";
 
-const API_BASE = "http://localhost:8787";
+import { API_BASE_URL as API_BASE } from "../config";
 const MAX_INPUT_LENGTH = 500;
 
 const cardVariant = {

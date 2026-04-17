@@ -4,7 +4,7 @@ import { Send, Loader2, Sparkles, Copy, Check } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { generateChatResponse, Message, ChatError } from "../services/groq";
 
-const API_BASE = "http://localhost:8787";
+import { API_BASE_URL as API_BASE } from "../config";
 
 interface PersonaData {
   slug: string;
