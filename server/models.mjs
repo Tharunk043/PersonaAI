@@ -26,7 +26,7 @@ const chatSessionSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   personaId: { type: mongoose.Schema.Types.ObjectId, ref: 'Persona', default: null },
   title: { type: String, required: true },
-  personaPrompt: { type: String, required: true },
+  personaPrompt: { type: String, default: "" },
   type: { type: String, enum: ['chat', 'debate'], default: 'chat' },
   metadata: { type: mongoose.Schema.Types.Mixed, default: {} },
 }, { timestamps: true });
