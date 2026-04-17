@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Users, Send } from 'lucide-react';
 import { generateChatResponse } from '../../services/groq';
+import { API_BASE_URL as API_BASE } from '../../config';
 
 const TypewriterText = React.memo(({ text, isP1 }: { text: string, isP1: boolean }) => {
   const words = text.split(" ");
@@ -50,6 +51,12 @@ const DebateRoom: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [debateError, setDebateError] = useState<string | null>(null);
   const [audioEnabled, setAudioEnabled] = useState(true);
   
+  // New States for Persistence
+  const [activeTab, setActiveTab] = useState<'new' | 'history'>('new');
+  const [history, setHistory] = useState<any[]>([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  
   const debateInterval = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isDebatingRef = useRef(false);
@@ -61,10 +68,75 @@ const DebateRoom: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     if (synthRef.current) {
       synthRef.current.getVoices();
     }
+    fetchHistory();
     return () => {
       synthRef.current?.cancel();
     };
   }, []);
+
+  const fetchHistory = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    setIsHistoryLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/chat-sessions?type=debate`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.sessions) setHistory(data.sessions);
+    } catch (err) {
+      console.error("Failed to fetch history:", err);
+    } finally {
+      setIsHistoryLoading(false);
+    }
+  };
+
+  const saveMessage = async (sessionId: string, role: string, content: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      await fetch(`${API_BASE}/api/chat-sessions/${sessionId}/messages`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ role, content })
+      });
+    } catch (err) {
+      console.error("Failed to save message:", err);
+    }
+  };
+
+  const loadSession = async (sessionId: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    setIsHistoryLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/chat-sessions/${sessionId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.session) {
+        setCurrentSessionId(data.session.id);
+        setPersona1(data.session.metadata?.persona1 || 'Persona 1');
+        setPersona2(data.session.metadata?.persona2 || 'Persona 2');
+        setTopic(data.session.title.replace('Debate: ', ''));
+        setMessages(data.messages.map((m: any) => ({
+          id: m.id,
+          speaker: m.role === 'system' ? 0 : (m.content.startsWith(`[${data.session.metadata?.persona1}]: `) ? 1 : 2),
+          text: m.role === 'system' ? m.content : m.content.split(']: ').slice(1).join(']: ')
+        })));
+        setActiveTab('new');
+        setIsDebating(false);
+        isDebatingRef.current = false;
+      }
+    } catch (err) {
+      console.error("Failed to load session:", err);
+    } finally {
+      setIsHistoryLoading(false);
+    }
+  };
 
   const guessGender = (name: string) => {
     const lower = name.toLowerCase();
@@ -111,11 +183,48 @@ const DebateRoom: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
   const startDebate = async () => {
     if (!topic.trim()) return;
+    
+    // Create Session in DB
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setDebateError("You must be logged in to save debates.");
+      return;
+    }
+
     setIsDebating(true);
     isDebatingRef.current = true;
     setDebateError(null);
-    setMessages([{ id: Date.now().toString(), speaker: 0, text: `The debate topic is: ${topic}` }]);
-    triggerNextSpeaker(1, [`The debate topic is: ${topic}`]);
+    
+    const initialMsg = `The debate topic is: ${topic}`;
+    setMessages([{ id: Date.now().toString(), speaker: 0, text: initialMsg }]);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/chat-sessions`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: `Debate: ${topic.slice(0, 50)}`,
+          type: 'debate',
+          metadata: { persona1, persona2 }
+        })
+      });
+      const data = await res.json();
+      if (data.session) {
+        setCurrentSessionId(data.session.id);
+        // Save initial system message
+        await saveMessage(data.session.id, 'system', initialMsg);
+        triggerNextSpeaker(1, [initialMsg], data.session.id);
+      } else {
+         throw new Error("Failed to create session");
+      }
+    } catch (err: any) {
+      setDebateError("Failed to initialize database session.");
+      setIsDebating(false);
+      isDebatingRef.current = false;
+    }
   };
 
   const stopDebate = () => {
@@ -123,10 +232,12 @@ const DebateRoom: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     isDebatingRef.current = false;
   };
 
-  const triggerNextSpeaker = async (speaker: number, historyContents: string[]) => {
+  const triggerNextSpeaker = async (speaker: number, historyContents: string[], sessionIdArg?: string) => {
     if (!isDebatingRef.current) return;
 
-
+    const sessionId = sessionIdArg || currentSessionId;
+    if (!sessionId) return;
+    
     const pName = speaker === 1 ? persona1 : persona2;
     const opponent = speaker === 1 ? persona2 : persona1;
     
@@ -139,8 +250,6 @@ CRITICAL: Your response MUST be exactly ONE SINGLE SENTENCE (maximum 15-20 words
 Stay entirely in character, NEVER mention you are an AI, and directly argue or agree with the previous speaker in your unique tone.
 DO NOT prepend your response with your name like "${pName}:", just output the dialogue directly.`;
 
-    // Rather than dealing with strictly alternating 'user'/'assistant' arrays which can 
-    // break the Groq/Llama API schema constraints, just provide the full transcript.
     const transcript = historyContents.map((text, i) => {
       if (i === 0) return `[SYSTEM]: ${text}`;
       const name = (i % 2 !== 0) ? persona1 : persona2;
@@ -153,15 +262,17 @@ DO NOT prepend your response with your name like "${pName}:", just output the di
       const response = await generateChatResponse(systemPrompt, [], promptText);
       const newHistory = [...historyContents, response];
       
-      setMessages(prev => [...prev, { id: Date.now().toString(), speaker, text: response }]);
+      const msgId = Date.now().toString();
+      setMessages(prev => [...prev, { id: msgId, speaker, text: response }]);
       speakMessage(response, speaker === 1);
       
-      // Schedule next speaker if still debating with an 8-second delay
+      // Save to DB
+      await saveMessage(sessionId, 'assistant', `[${pName}]: ${response}`);
+
       if (isDebatingRef.current) {
-        // Clear old interval just in case
         clearTimeout(debateInterval.current);
         debateInterval.current = setTimeout(() => {
-          triggerNextSpeaker(speaker === 1 ? 2 : 1, newHistory);
+          triggerNextSpeaker(speaker === 1 ? 2 : 1, newHistory, sessionId);
         }, 8000);
       }
 
@@ -208,8 +319,29 @@ DO NOT prepend your response with your name like "${pName}:", just output the di
           </div>
         </div>
 
-        {/* Configuration */}
+        {/* Tabs */}
         {!isDebating && messages.length === 0 && (
+          <div className="flex gap-1 p-1 bg-slate-900 border border-slate-800 rounded-xl mb-6 w-fit">
+            <button
+              onClick={() => setActiveTab('new')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'new' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+            >
+              New Debate
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('history');
+                fetchHistory();
+              }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'history' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+            >
+              History
+            </button>
+          </div>
+        )}
+
+        {/* New Debate Configuration */}
+        {activeTab === 'new' && !isDebating && messages.length === 0 && (
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 mb-8 flex-shrink-0">
             <h3 className="font-semibold mb-4 text-lg">Configure the Debate</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -252,8 +384,47 @@ DO NOT prepend your response with your name like "${pName}:", just output the di
           </div>
         )}
 
-        {/* Debate Arena */}
-        {(messages.length > 0 || isDebating) && (
+        {/* History Tab */}
+        {activeTab === 'history' && !isDebating && messages.length === 0 && (
+          <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
+            {isHistoryLoading ? (
+               <div className="flex items-center justify-center p-20">
+                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+               </div>
+            ) : history.length === 0 ? (
+               <div className="text-center p-20 bg-slate-900/50 rounded-2xl border border-dashed border-slate-800">
+                 <p className="text-slate-500">No past debates found.</p>
+                 <button onClick={() => setActiveTab('new')} className="text-indigo-400 hover:underline mt-2">Start your first debate</button>
+               </div>
+            ) : (
+              history.map((session) => (
+                <div 
+                  key={session.id}
+                  onClick={() => loadSession(session.id)}
+                  className="bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-indigo-500/50 hover:bg-slate-800/50 transition-all cursor-pointer group"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-bold text-lg text-slate-100 group-hover:text-indigo-400 transition-colors">
+                      {session.title.replace('Debate: ', '')}
+                    </h4>
+                    <span className="text-[10px] bg-slate-800 text-slate-500 px-2 py-1 rounded">
+                      {new Date(session.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="flex gap-2 text-xs text-slate-400">
+                    <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                      {session.metadata?.persona1}
+                    </span>
+                    <span className="text-slate-600">vs</span>
+                    <span className="px-2 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                      {session.metadata?.persona2}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
           <div className="flex-1 border border-slate-800 bg-slate-900/50 rounded-2xl p-4 flex flex-col overflow-hidden relative min-h-[500px]">
             
             {debateError && (

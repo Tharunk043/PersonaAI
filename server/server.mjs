@@ -184,8 +184,11 @@ app.delete("/api/personas/:id", authenticateToken, async (req, res) => {
 // ── Chat routes ──
 app.get("/api/chat-sessions", authenticateToken, async (req, res) => {
   try {
+    const query = { userId: new mongoose.Types.ObjectId(String(req.user.id)) };
+    if (req.query.type) query.type = req.query.type;
+
     const sessions = await ChatSession.aggregate([
-      { $match: { userId: new mongoose.Types.ObjectId(String(req.user.id)) } },
+      { $match: query },
       { $lookup: { from: 'chatmessages', localField: '_id', foreignField: 'sessionId', as: 'messages' } },
       { $addFields: { message_count: { $size: '$messages' } } },
       { $project: { messages: 0 } },
@@ -198,6 +201,8 @@ app.get("/api/chat-sessions", authenticateToken, async (req, res) => {
         persona_id: s.personaId, 
         title: s.title, 
         persona_prompt: s.personaPrompt,
+        type: s.type,
+        metadata: s.metadata,
         created_at: s.createdAt, 
         updated_at: s.updatedAt, 
         message_count: s.message_count 
@@ -211,9 +216,11 @@ app.get("/api/chat-sessions", authenticateToken, async (req, res) => {
 
 app.post("/api/chat-sessions", authenticateToken, async (req, res) => {
   try {
-    const { title, personaPrompt, personaId } = req.body || {};
-    if (!personaPrompt || !String(personaPrompt).trim()) {
-      return res.status(400).json({ error: "Persona prompt is required" });
+    const { title, personaPrompt, personaId, type, metadata } = req.body || {};
+    if (!personaPrompt && type !== 'debate') { // Prompt is required for chat but not strictly for debate start
+       if (!personaPrompt || !String(personaPrompt).trim()) {
+         return res.status(400).json({ error: "Persona prompt is required" });
+       }
     }
 
     let linkedPersonaId = null;
@@ -222,12 +229,14 @@ app.post("/api/chat-sessions", authenticateToken, async (req, res) => {
       if (persona) linkedPersonaId = persona._id;
     }
 
-    const sessionTitle = String(title || "New chat").trim().slice(0, 120) || "New chat";
+    const sessionTitle = String(title || "New session").trim().slice(0, 120) || "New session";
     const session = await ChatSession.create({
       userId: req.user.id,
       personaId: linkedPersonaId,
       title: sessionTitle,
-      personaPrompt: String(personaPrompt)
+      personaPrompt: String(personaPrompt || ""),
+      type: type || 'chat',
+      metadata: metadata || {}
     });
 
     return res.json({ 
@@ -236,6 +245,8 @@ app.post("/api/chat-sessions", authenticateToken, async (req, res) => {
         persona_id: session.personaId, 
         title: session.title, 
         persona_prompt: session.personaPrompt, 
+        type: session.type,
+        metadata: session.metadata,
         created_at: session.createdAt, 
         updated_at: session.updatedAt 
       }, 
@@ -260,6 +271,8 @@ app.get("/api/chat-sessions/:id", authenticateToken, async (req, res) => {
         persona_id: session.personaId, 
         title: session.title, 
         persona_prompt: session.personaPrompt, 
+        type: session.type,
+        metadata: session.metadata,
         created_at: session.createdAt, 
         updated_at: session.updatedAt 
       }, 

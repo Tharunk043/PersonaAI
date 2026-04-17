@@ -105,7 +105,7 @@ export const Chat: React.FC = () => {
   };
 
   const loadSessions = async () => {
-    const res = await fetch(`${API_BASE}/api/chat-sessions`, { headers: authHeaders() });
+    const res = await fetch(`${API_BASE}/api/chat-sessions?type=chat`, { headers: authHeaders() });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Could not load chat sessions");
     setSessions(data.sessions || []);
