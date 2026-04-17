@@ -34,7 +34,7 @@ const StructuredInput: React.FC = () => {
     e.preventDefault();
     if (!formData.name.trim()) return;
     const personaPrompt = generatePersonaPrompt(formData);
-    navigate('/chat', { state: { personaPrompt } });
+    navigate('/chat', { state: { personaPrompt, personaName: formData.name.trim() } });
   };
 
   const livePreview = useMemo(() => {

@@ -73,8 +73,8 @@ const UserProfile: React.FC = () => {
         personaPrompt = generateDefaultPrompt(personaName.trim(), demographics.trim());
       }
 
-      console.log("[UserProfile] Navigating to /chat with state prompt length:", personaPrompt.length);
-      navigate("/chat", { state: { personaPrompt } });
+      console.log("[UserProfile] Navigating to /chat with name:", personaName.trim());
+      navigate("/chat", { state: { personaPrompt, personaName: personaName.trim() } });
     } catch (err) {
       setError("Something went wrong while generating the persona.");
     } finally {

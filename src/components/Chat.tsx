@@ -14,7 +14,7 @@ const cardVariant = {
   show: { opacity: 1, y: 0, transition: { duration: 0.25 } },
 };
 
-type LocationState = { personaPrompt?: string } | undefined;
+type LocationState = { personaPrompt?: string; personaName?: string } | undefined;
 
 interface ChatSession {
   id: string;
@@ -40,7 +40,7 @@ export const Chat: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { personaPrompt: initialPersonaPrompt } = (location.state as LocationState) || {};
+  const { personaPrompt: initialPersonaPrompt, personaName: initialPersonaName } = (location.state as LocationState) || {};
 
   const [personaPrompt, setPersonaPrompt] = useState(initialPersonaPrompt || "");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -79,11 +79,12 @@ export const Chat: React.FC = () => {
 
   // Title from personaPrompt
   const personaTitle = useMemo(() => {
+    if (initialPersonaName) return initialPersonaName;
     if (!personaPrompt) return "AI Persona";
     const firstLine =
       personaPrompt.split("\n").find((l) => l.trim().length > 0) || "AI Persona";
     return firstLine.slice(0, 80);
-  }, [personaPrompt]);
+  }, [personaPrompt, initialPersonaName]);
 
   // Deploy / share
   const [showDeploy, setShowDeploy] = useState(false);
@@ -207,8 +208,8 @@ export const Chat: React.FC = () => {
         console.log("[Chat] Booting... URL session:", sessionIdFromUrl, "State prompt:", !!initialPersonaPrompt);
 
         if (initialPersonaPrompt) {
-          console.log("[Chat] Initializing new session from incoming state prompt...");
-          await createSession(initialPersonaPrompt, personaTitle);
+          console.log("[Chat] Initializing new session for:", initialPersonaName || "Persona");
+          await createSession(initialPersonaPrompt, initialPersonaName || personaTitle);
           return;
         }
 
