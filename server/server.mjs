@@ -531,4 +531,12 @@ app.delete("/api/generate-video", async (req, res) => {
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🎬 Server ready on http://localhost:${PORT} | MongoDB: Connected`);
+  
+  // Keep-alive ping logic
+  const URL = "https://persona-ai-backend-709f.onrender.com/api/health";
+  setInterval(() => {
+    fetch(URL)
+      .then(() => console.log(`💓 Keep-alive ping sent to ${URL}`))
+      .catch(err => console.error("❌ Keep-alive ping failed:", err.message));
+  }, 600000); // 10 minutes
 });
