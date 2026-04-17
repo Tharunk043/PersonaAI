@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, ArrowLeft, Volume2, Loader2, Mic, MicOff, Rocket, Copy, Check, X, ExternalLink, MessageSquare, Plus } from "lucide-react";
+import { Send, ArrowLeft, Volume2, Loader2, Mic, MicOff, Rocket, Copy, Check, X, ExternalLink, MessageSquare, Plus, Trash2 } from "lucide-react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { generateChatResponse, Message, ChatError } from "../services/groq";
 import { TextToSpeech } from "../utils/textToSpeech";
@@ -147,6 +147,26 @@ export const Chat: React.FC = () => {
     setSearchParams({ session: String(data.session.id) }, { replace: true });
     await loadSessions();
     return data.session as ChatSession;
+  };
+
+  const deleteSession = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this chat session?")) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/chat-sessions/${id}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      if (!res.ok) throw new Error("Could not delete session");
+      if (activeSessionId === id) {
+        setActiveSessionId(null);
+        setMessages([]);
+        setSearchParams({}, { replace: true });
+      }
+      await loadSessions();
+    } catch (err) {
+      console.error("[Chat] Delete error:", err);
+      alert("Failed to delete chat.");
+    }
   };
 
   const persistMessage = async (sessionId: string, message: Message) => {
@@ -724,21 +744,34 @@ export const Chat: React.FC = () => {
               </p>
             ) : (
               sessions.map((session) => (
-                <button
-                  key={session.id}
-                  onClick={() => loadSession(session.id)}
-                  className={[
-                    "w-full rounded-xl px-3 py-2 text-left text-sm transition",
-                    activeSessionId === session.id
-                      ? "bg-indigo-600 text-white"
-                      : "bg-gray-50 text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700",
-                  ].join(" ")}
-                >
-                  <span className="block truncate font-medium">{session.title}</span>
-                  <span className={activeSessionId === session.id ? "text-xs text-indigo-100" : "text-xs text-gray-400"}>
-                    {session.message_count || 0} messages
-                  </span>
-                </button>
+                <div key={session.id} className="group relative">
+                  <button
+                    onClick={() => loadSession(session.id)}
+                    className={[
+                      "w-full rounded-xl px-3 py-2 text-left text-sm transition pr-10",
+                      activeSessionId === session.id
+                        ? "bg-indigo-600 text-white"
+                        : "bg-gray-50 text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700",
+                    ].join(" ")}
+                  >
+                    <span className="block truncate font-medium">{session.title}</span>
+                    <span className={activeSessionId === session.id ? "text-xs text-indigo-100" : "text-xs text-gray-400"}>
+                      {session.message_count || 0} messages
+                    </span>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteSession(session.id);
+                    }}
+                    className={[
+                      "absolute right-2 top-1/2 -translate-y-1/2 p-1.5 opacity-0 group-hover:opacity-100 transition rounded-lg hover:bg-red-500 hover:text-white",
+                      activeSessionId === session.id ? "text-white/60" : "text-gray-400"
+                    ].join(" ")}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               ))
             )}
           </div>
