@@ -424,7 +424,8 @@ DO NOT prepend your response with your name like "${pName}:", just output the di
               ))
             )}
           </div>
-        )}
+        {/* Debate Arena */}
+        {(messages.length > 0 || isDebating) && (
           <div className="flex-1 border border-slate-800 bg-slate-900/50 rounded-2xl p-4 flex flex-col overflow-hidden relative min-h-[500px]">
             
             {debateError && (
