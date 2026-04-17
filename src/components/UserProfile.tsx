@@ -65,6 +65,7 @@ const UserProfile: React.FC = () => {
     setError(null);
 
     try {
+      console.log("[UserProfile] Generating prompt for:", personaName.trim());
       let personaPrompt = "";
       if (searchResults && searchResults?.organic_results?.length) {
         personaPrompt = generateSearchBasedPrompt(personaName.trim(), searchResults);
@@ -72,6 +73,7 @@ const UserProfile: React.FC = () => {
         personaPrompt = generateDefaultPrompt(personaName.trim(), demographics.trim());
       }
 
+      console.log("[UserProfile] Navigating to /chat with state prompt length:", personaPrompt.length);
       navigate("/chat", { state: { personaPrompt } });
     } catch (err) {
       setError("Something went wrong while generating the persona.");

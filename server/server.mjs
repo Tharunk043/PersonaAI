@@ -217,10 +217,8 @@ app.get("/api/chat-sessions", authenticateToken, async (req, res) => {
 app.post("/api/chat-sessions", authenticateToken, async (req, res) => {
   try {
     const { title, personaPrompt, personaId, type, metadata } = req.body || {};
-    if (!personaPrompt && type !== 'debate') { // Prompt is required for chat but not strictly for debate start
-       if (!personaPrompt || !String(personaPrompt).trim()) {
-         return res.status(400).json({ error: "Persona prompt is required" });
-       }
+    if (!personaPrompt && type !== 'debate') {
+        return res.status(400).json({ error: "Persona prompt is required for chat sessions" });
     }
 
     let linkedPersonaId = null;

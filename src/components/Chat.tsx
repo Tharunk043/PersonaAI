@@ -203,9 +203,10 @@ export const Chat: React.FC = () => {
     const boot = async () => {
       setIsSessionLoading(true);
       try {
-        const sessionIdFromUrl = searchParams.get("session");
+        console.log("[Chat] Booting... URL session:", sessionIdFromUrl, "State prompt:", !!initialPersonaPrompt);
 
         if (initialPersonaPrompt) {
+          console.log("[Chat] Initializing new session from incoming state prompt...");
           await createSession(initialPersonaPrompt, personaTitle);
           return;
         }
@@ -236,9 +237,8 @@ export const Chat: React.FC = () => {
     return () => {
       cancelled = true;
     };
-    // Run once for the entered route state/query. Session switching calls loadSession directly.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initialPersonaPrompt]); // Re-run if a new prompt comes in via navigation state
 
   // Init SpeechRecognition with robust silence handling
   useEffect(() => {
