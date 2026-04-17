@@ -182,9 +182,9 @@ const About: React.FC = () => {
         <h2 className="mb-6 text-2xl font-bold tracking-tight">Team</h2>
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           {[
-            { name: "Tharun Velamakuru", role: "Front-End", img: "https://media.licdn.com/dms/image/v2/D5635AQHrjy9g-6nXUQ/profile-framedphoto-shrink_200_200/B56ZhqYsS0HMAY-/0/1754131514866?e=1764046800&v=beta&t=DDHQo41IXsLGrdqpJ3aezdKdg9OQeHMPGISg1yMWo90" },
-            { name: "Hemsai", role: "Integration", img: "https://media.licdn.com/dms/image/v2/D4E35AQEEqLQOlshR1Q/profile-framedphoto-shrink_200_200/B4EZk8ellFIwAc-/0/1757656276290?e=1764046800&v=beta&t=zezUMTx0JRlBqz4vZHXqrBPnxdQYRo5zSQGay_nuxkg" },
-            { name: "Irmiya", role: "Back-End", img: "https://media.licdn.com/dms/image/v2/D5635AQHoyAtcL5ynZQ/profile-framedphoto-shrink_200_200/B56ZTklbUXHQAY-/0/1739001804358?e=1764046800&v=beta&t=ldhr57lr5OOLnLke8t4WiyNu3sJXAIYgPwt4NJEGa9Q" },
+            { name: "Tharun Velamakuru", role: "Front-End", img: "/assets/tharun.png" },
+            { name: "Hemsai", role: "Integration", img: "/assets/hemsai.png" },
+            { name: "Irmiya", role: "Back-End", img: "/assets/irmiya.png" },
           ].map((m) => (
             <GlassCard key={m.name}>
                               <img
