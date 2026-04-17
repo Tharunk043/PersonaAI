@@ -106,9 +106,15 @@ export default function CreativeHelper() {
         durationSeconds,
       };
 
+      const token = localStorage.getItem("persona_token");
+      console.log("[CreativeHelper] Starting gen. Provider:", provider, "Token exists:", !!token);
+
       const res = await fetch("/api/generate-video", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify(payload),
       });
 

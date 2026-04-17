@@ -446,6 +446,7 @@ app.post("/api/memorial-video", async (req, res) => {
 });
 
 app.post("/api/generate-video", async (req, res) => {
+  console.log("[VideoGen] POST request received. Body keys:", Object.keys(req.body || {}));
   const { prompt, avatar_id, voice_id, dimension, provider } = req.body || {};
   if (!prompt || String(prompt).trim().length < 2) {
     return res.status(400).json({ error: "Prompt/script is required" });
