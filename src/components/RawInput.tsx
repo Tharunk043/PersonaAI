@@ -11,6 +11,7 @@ interface FileData {
 
 const RawInput: React.FC = () => {
   const navigate = useNavigate();
+  const [personaName, setPersonaName] = useState('');
   const [rawData, setRawData] = useState('');
   const [files, setFiles] = useState<FileData[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -18,6 +19,10 @@ const RawInput: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!personaName.trim()) {
+      setError('Please enter a name for your persona');
+      return;
+    }
     if (!rawData.trim() && files.length === 0) {
       setError('Please enter some content or upload files');
       return;
@@ -26,7 +31,7 @@ const RawInput: React.FC = () => {
     const allContent = [rawData, ...files.map(f => f.content)].filter(Boolean).join('\n\n');
     const personaPrompt = `Embody the following persona completely. Never break character or explain who you are unless explicitly asked. Keep responses brief and concise (2-3 sentences max). Never introduce yourself or explain that you're an AI.\n\n${allContent}\n\nStay in character at all times. Only reveal your identity if directly asked.`;
     
-    navigate('/chat', { state: { personaPrompt } });
+    navigate('/chat', { state: { personaPrompt, personaName: personaName.trim() } });
   };
 
   const processFile = async (file: File): Promise<string> => {
@@ -92,6 +97,20 @@ const RawInput: React.FC = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="px-8 py-6 space-y-6">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Persona Name
+              </label>
+              <input
+                type="text"
+                value={personaName}
+                onChange={(e) => setPersonaName(e.target.value)}
+                placeholder="e.g., Mahesh Babu, Steve Jobs, Pirate Captain"
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                required
+              />
+            </div>
+
             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 flex gap-3">
               <AlertCircle className="w-5 h-5 text-gray-600 dark:text-gray-400 flex-shrink-0 mt-0.5" />
               <div className="text-sm text-gray-600 dark:text-gray-300">
