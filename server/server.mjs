@@ -314,21 +314,23 @@ const groq = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_
 app.get("/api2/ping", (_req, res) => res.json({ ok: true, at: Date.now() }));
 
 app.post("/api2/ask", async (req, res) => {
-  const { prompt } = req.body || {};
-  if (!prompt || !String(prompt).trim()) {
-    return res.status(400).json({ error: "No prompt provided" });
+  const { prompt, messages: history } = req.body || {};
+  if (!prompt && (!history || !history.length)) {
+    return res.status(400).json({ error: "No prompt or messages provided" });
   }
   if (!groq) {
     return res.status(500).json({ error: "Groq API key not configured" });
   }
 
   try {
+    const messages = history || [
+      { role: "system", content: "You are a decision helper. Respond clearly and logically." },
+      { role: "user", content: prompt },
+    ];
+
     const chat = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
-      messages: [
-        { role: "system", content: "You are a decision helper. Respond clearly and logically." },
-        { role: "user", content: prompt },
-      ],
+      messages,
       temperature: 0.4,
     });
 

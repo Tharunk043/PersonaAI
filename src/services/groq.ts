@@ -1,9 +1,4 @@
-import Groq from 'groq-sdk';
-
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
-const MAX_MESSAGES = 10;
-const MAX_MESSAGE_LENGTH = 4000;
-const MAX_PROMPT_LENGTH = 8000;
+import { API_BASE_URL } from '../config';
 
 export interface Message {
   role: 'system' | 'user' | 'assistant';
@@ -16,6 +11,10 @@ export class ChatError extends Error {
     this.name = 'ChatError';
   }
 }
+
+const MAX_MESSAGES = 10;
+const MAX_MESSAGE_LENGTH = 4000;
+const MAX_PROMPT_LENGTH = 8000;
 
 const truncateMessage = (message: string, maxLength: number): string => {
   if (message.length <= maxLength) return message;
@@ -49,50 +48,31 @@ export const generateChatResponse = async (
   userMessage: string
 ): Promise<string> => {
   try {
-    if (!GROQ_API_KEY) {
-      throw new ChatError('Missing API key');
-    }
-
-    const groq = new Groq({
-      apiKey: GROQ_API_KEY,
-      dangerouslyAllowBrowser: true
-    });
-
     const messages = prepareMessages(personaPrompt, conversationHistory, userMessage);
 
-    const completion = await groq.chat.completions.create({
-      messages,
-      model: "llama-3.3-70b-versatile",
-      temperature: 0.7,
-      top_p: 0.95,
-      max_tokens: 2048,
-      stream: false
+    // Call our backend proxy instead of using the Groq SDK directly in the browser
+    const res = await fetch(`${API_BASE_URL}/api2/ask`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages })
     });
 
-    const response = completion.choices[0]?.message?.content;
-    
+    const data = await res.json();
+    if (!res.ok) {
+      throw new ChatError(data.error || 'Failed to generate response from server');
+    }
+
+    const response = data.answer;
     if (!response) {
       throw new ChatError('Invalid response format from API');
     }
 
     return response;
   } catch (error: any) {
-    let userFriendlyMessage = 'Failed to generate response. ';
+    if (error instanceof ChatError) throw error;
     
-    if (error.details?.status === 413 || error.message?.includes('rate_limit_exceeded')) {
-      userFriendlyMessage += 'Message too long. Please try a shorter message.';
-    } else if (error.message?.includes('401')) {
-      userFriendlyMessage += 'Invalid API key.';
-    } else if (error.message?.includes('404')) {
-      userFriendlyMessage += 'API endpoint not found.';
-    } else if (error.message?.includes('429')) {
-      userFriendlyMessage += 'Rate limit exceeded. Please try again later.';
-    } else if (error.message?.includes('500')) {
-      userFriendlyMessage += 'Server error. Please try again later.';
-    } else {
-      userFriendlyMessage += error.message || 'An unexpected error occurred';
-    }
-
+    let userFriendlyMessage = 'Failed to generate response. ';
+    userFriendlyMessage += error.message || 'An unexpected error occurred';
     throw new ChatError(userFriendlyMessage, error);
   }
 };
