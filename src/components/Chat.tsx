@@ -17,8 +17,8 @@ const cardVariant = {
 type LocationState = { personaPrompt?: string } | undefined;
 
 interface ChatSession {
-  id: number;
-  persona_id?: number | null;
+  id: string;
+  persona_id?: string | null;
   title: string;
   persona_prompt?: string;
   created_at: string;
@@ -27,7 +27,7 @@ interface ChatSession {
 }
 
 interface StoredMessage extends Message {
-  id?: number;
+  id?: string;
   created_at?: string;
 }
 
@@ -45,7 +45,7 @@ export const Chat: React.FC = () => {
   const [personaPrompt, setPersonaPrompt] = useState(initialPersonaPrompt || "");
   const [messages, setMessages] = useState<Message[]>([]);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
-  const [activeSessionId, setActiveSessionId] = useState<number | null>(null);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [isSessionLoading, setIsSessionLoading] = useState(true);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -112,7 +112,7 @@ export const Chat: React.FC = () => {
     return data.sessions || [];
   };
 
-  const loadSession = async (sessionId: number) => {
+  const loadSession = async (sessionId: string) => {
     setIsSessionLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/chat-sessions/${sessionId}`, { headers: authHeaders() });
@@ -148,7 +148,7 @@ export const Chat: React.FC = () => {
     return data.session as ChatSession;
   };
 
-  const persistMessage = async (sessionId: number, message: Message) => {
+  const persistMessage = async (sessionId: string, message: Message) => {
     const res = await fetch(`${API_BASE}/api/chat-sessions/${sessionId}/messages`, {
       method: "POST",
       headers: authHeaders(),
@@ -203,7 +203,7 @@ export const Chat: React.FC = () => {
     const boot = async () => {
       setIsSessionLoading(true);
       try {
-        const sessionIdFromUrl = Number(searchParams.get("session"));
+        const sessionIdFromUrl = searchParams.get("session");
 
         if (initialPersonaPrompt) {
           await createSession(initialPersonaPrompt, personaTitle);

@@ -262,11 +262,11 @@ const Home: React.FC = () => {
   const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
   const startBuilding = () => {
     if (isAuthenticated) {
-      navigate("/studio");
+      navigate("/chat");
       return;
     }
 
-    navigate("/login", { state: { from: "/studio" } });
+    navigate("/login", { state: { from: "/chat" } });
   };
 
   return (
