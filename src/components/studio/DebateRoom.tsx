@@ -75,7 +75,7 @@ const DebateRoom: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   }, []);
 
   const fetchHistory = async () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('persona_token');
     if (!token) return;
     setIsHistoryLoading(true);
     try {
@@ -92,7 +92,7 @@ const DebateRoom: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   };
 
   const saveMessage = async (sessionId: string, role: string, content: string) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('persona_token');
     if (!token) return;
     try {
       await fetch(`${API_BASE}/api/chat-sessions/${sessionId}/messages`, {
@@ -109,7 +109,7 @@ const DebateRoom: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   };
 
   const loadSession = async (sessionId: string) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('persona_token');
     if (!token) return;
     setIsHistoryLoading(true);
     try {
@@ -185,7 +185,7 @@ const DebateRoom: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     if (!topic.trim()) return;
     
     // Create Session in DB
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('persona_token');
     if (!token) {
       setDebateError("You must be logged in to save debates.");
       return;
