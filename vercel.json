@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "destination": "https://persona-ai-backend-709f.onrender.com/api/$1"
+    },
+    {
+      "source": "/api2/(.*)",
+      "destination": "https://persona-ai-backend-709f.onrender.com/api2/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

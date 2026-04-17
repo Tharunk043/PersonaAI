@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { API_BASE_URL as API_BASE } from "../config";
 
 /**
  * CreativeHelper.tsx (Web keywords + HeyGen-ready)
@@ -67,7 +68,7 @@ export default function CreativeHelper() {
 
     const poll = async () => {
       try {
-        const res = await fetch(`/api/generate-video?jobId=${encodeURIComponent(jobId)}`);
+        const res = await fetch(`${API_BASE}/api/generate-video?jobId=${encodeURIComponent(jobId)}`);
         if (!res.ok) throw new Error(`Status HTTP ${res.status}`);
         const body: JobStatusResponse = await res.json();
         if (!active) return;
@@ -109,7 +110,7 @@ export default function CreativeHelper() {
       const token = localStorage.getItem("persona_token");
       console.log("[CreativeHelper] Starting gen. Provider:", provider, "Token exists:", !!token);
 
-      const res = await fetch("/api/generate-video", {
+      const res = await fetch(`${API_BASE}/api/generate-video`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -140,7 +141,7 @@ export default function CreativeHelper() {
   const cancelJob = async () => {
     if (!jobId) return;
     try {
-      await fetch(`/api/generate-video?jobId=${encodeURIComponent(jobId)}`, { method: "DELETE" });
+      await fetch(`${API_BASE}/api/generate-video?jobId=${encodeURIComponent(jobId)}`, { method: "DELETE" });
     } catch {
       // no-op
     } finally {
