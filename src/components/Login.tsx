@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, Mail, Lock, User, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -13,10 +13,17 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { login, signup } = useAuth();
+  const { isAuthenticated, login, signup } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as { from?: string })?.from || '/chat';
+  const loginState = location.state as { from?: string; fromState?: unknown } | null;
+  const from = loginState?.from && loginState.from !== '/login' ? loginState.from : '/studio';
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(from, { replace: true, state: loginState?.fromState });
+    }
+  }, [from, isAuthenticated, loginState?.fromState, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +46,7 @@ const Login: React.FC = () => {
     try {
       const result = isSignUp ? await signup(name, email, password) : await login(email, password);
       if (result.ok) {
-        navigate(from, { replace: true });
+        navigate(from, { replace: true, state: loginState?.fromState });
       } else {
         setError(result.error || 'Invalid credentials. Please try again.');
       }

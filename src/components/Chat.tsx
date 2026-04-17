@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, ArrowLeft, Volume2, Loader2, Mic, MicOff, Rocket, Copy, Check, X, ExternalLink } from "lucide-react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { Send, ArrowLeft, Volume2, Loader2, Mic, MicOff, Rocket, Copy, Check, X, ExternalLink, MessageSquare, Plus } from "lucide-react";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { generateChatResponse, Message, ChatError } from "../services/groq";
 import { TextToSpeech } from "../utils/textToSpeech";
 import VoiceSettings from "./VoiceSettings";
@@ -16,6 +16,21 @@ const cardVariant = {
 
 type LocationState = { personaPrompt?: string } | undefined;
 
+interface ChatSession {
+  id: number;
+  persona_id?: number | null;
+  title: string;
+  persona_prompt?: string;
+  created_at: string;
+  updated_at: string;
+  message_count?: number;
+}
+
+interface StoredMessage extends Message {
+  id?: number;
+  created_at?: string;
+}
+
 type SRWindow = Window & {
   webkitSpeechRecognition?: any;
   SpeechRecognition?: any;
@@ -24,9 +39,14 @@ type SRWindow = Window & {
 export const Chat: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { personaPrompt } = (location.state as LocationState) || {};
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { personaPrompt: initialPersonaPrompt } = (location.state as LocationState) || {};
 
+  const [personaPrompt, setPersonaPrompt] = useState(initialPersonaPrompt || "");
   const [messages, setMessages] = useState<Message[]>([]);
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<number | null>(null);
+  const [isSessionLoading, setIsSessionLoading] = useState(true);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,6 +96,71 @@ export const Chat: React.FC = () => {
 
   const deployedUrl = deployedSlug ? `${window.location.origin}/p/${deployedSlug}` : "";
 
+  const authHeaders = () => {
+    const token = localStorage.getItem("persona_token");
+    return {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    };
+  };
+
+  const loadSessions = async () => {
+    const res = await fetch(`${API_BASE}/api/chat-sessions`, { headers: authHeaders() });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not load chat sessions");
+    setSessions(data.sessions || []);
+    return data.sessions || [];
+  };
+
+  const loadSession = async (sessionId: number) => {
+    setIsSessionLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/chat-sessions/${sessionId}`, { headers: authHeaders() });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not load chat session");
+
+      setActiveSessionId(data.session.id);
+      setPersonaPrompt(data.session.persona_prompt);
+      setMessages((data.messages || []).map((m: StoredMessage) => ({ role: m.role, content: m.content })));
+      setSearchParams({ session: String(data.session.id) }, { replace: true });
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load chat session");
+    } finally {
+      setIsSessionLoading(false);
+    }
+  };
+
+  const createSession = async (prompt: string, title = personaTitle) => {
+    const res = await fetch(`${API_BASE}/api/chat-sessions`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ title, personaPrompt: prompt }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not create chat session");
+
+    setActiveSessionId(data.session.id);
+    setPersonaPrompt(data.session.persona_prompt);
+    setMessages([]);
+    setSearchParams({ session: String(data.session.id) }, { replace: true });
+    await loadSessions();
+    return data.session as ChatSession;
+  };
+
+  const persistMessage = async (sessionId: number, message: Message) => {
+    const res = await fetch(`${API_BASE}/api/chat-sessions/${sessionId}/messages`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify(message),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Could not save message");
+    }
+    await loadSessions();
+  };
+
   const handleDeploy = async () => {
     if (!deployName.trim() || !personaPrompt) return;
     setDeploying(true);
@@ -103,17 +188,57 @@ export const Chat: React.FC = () => {
     setTimeout(() => setLinkCopied(false), 2000);
   };
 
-  // Guard + init TTS
+  // Init TTS
   useEffect(() => {
-    if (!personaPrompt) {
-      navigate("/profile");
-      return;
-    }
     if (!ttsRef.current) {
       ttsRef.current = new TextToSpeech();
-      ttsRef.current.setVoice(selectedVoice);
     }
-  }, [personaPrompt, navigate, selectedVoice]);
+    ttsRef.current.setVoice(selectedVoice);
+  }, [selectedVoice]);
+
+  // Load existing sessions or create a new saved session from the incoming persona prompt.
+  useEffect(() => {
+    let cancelled = false;
+
+    const boot = async () => {
+      setIsSessionLoading(true);
+      try {
+        const sessionIdFromUrl = Number(searchParams.get("session"));
+
+        if (initialPersonaPrompt) {
+          await createSession(initialPersonaPrompt, personaTitle);
+          return;
+        }
+
+        const existingSessions = await loadSessions();
+        if (sessionIdFromUrl) {
+          await loadSession(sessionIdFromUrl);
+          return;
+        }
+
+        if (existingSessions.length > 0) {
+          await loadSession(existingSessions[0].id);
+          return;
+        }
+
+        if (!cancelled) navigate("/profile", { replace: true });
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Could not load chats");
+          if (!personaPrompt) navigate("/profile", { replace: true });
+        }
+      } finally {
+        if (!cancelled) setIsSessionLoading(false);
+      }
+    };
+
+    boot();
+    return () => {
+      cancelled = true;
+    };
+    // Run once for the entered route state/query. Session switching calls loadSession directly.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Init SpeechRecognition with robust silence handling
   useEffect(() => {
@@ -306,7 +431,13 @@ export const Chat: React.FC = () => {
   const handleSubmit = async (e?: React.FormEvent, voiceInput?: string) => {
     if (e) e.preventDefault();
     const content = (voiceInput ?? inputMessage).trim();
-    if (!content || isLoading) return;
+    if (!content || isLoading || isSessionLoading) return;
+
+    const prompt = personaPrompt || initialPersonaPrompt;
+    if (!prompt) {
+      setError("Create or open a persona before chatting.");
+      return;
+    }
 
     if (content.length > MAX_INPUT_LENGTH) {
       setError(`Message too long. Please keep it under ${MAX_INPUT_LENGTH} characters.`);
@@ -324,9 +455,19 @@ export const Chat: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await generateChatResponse(personaPrompt!, nextHistory, content);
+      let sessionId = activeSessionId;
+      if (!sessionId) {
+        const created = await createSession(prompt, personaTitle);
+        sessionId = created.id;
+        setMessages(nextHistory);
+      }
+
+      await persistMessage(sessionId, userMsg);
+
+      const response = await generateChatResponse(prompt, nextHistory, content);
       const assistantMsg = { role: "assistant" as const, content: response };
       setMessages((prev) => [...prev, assistantMsg]);
+      await persistMessage(sessionId, assistantMsg);
 
       // ❌ remove direct play here; the auto-speak effect above will handle it
       // if (voiceMode && ttsRef.current) { playMessage(response); }
@@ -339,7 +480,7 @@ export const Chat: React.FC = () => {
     }
   };
 
-  const disabledSend = isLoading || inputMessage.trim().length === 0;
+  const disabledSend = isLoading || isSessionLoading || inputMessage.trim().length === 0;
 
   // Send on Enter, newline on Shift+Enter
   const handleKeyDown: React.KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
@@ -552,7 +693,55 @@ export const Chat: React.FC = () => {
       </AnimatePresence>
 
       {/* Chat container */}
-      <div className="max-w-5xl mx-auto px-4 py-6">
+      <div className="max-w-6xl mx-auto px-4 py-6 grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
+        <aside className="rounded-3xl border border-gray-200/70 bg-white p-4 shadow dark:border-gray-800 dark:bg-gray-900">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+              <MessageSquare className="h-4 w-4" />
+              Sessions
+            </div>
+            <button
+              onClick={() => navigate("/profile")}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white transition hover:bg-indigo-700"
+              title="Create a new persona chat"
+              aria-label="Create a new persona chat"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="mt-3 max-h-[68vh] space-y-2 overflow-y-auto pr-1">
+            {isSessionLoading && sessions.length === 0 ? (
+              <div className="flex items-center gap-2 rounded-xl bg-gray-50 px-3 py-2 text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Loading chats
+              </div>
+            ) : sessions.length === 0 ? (
+              <p className="rounded-xl bg-gray-50 px-3 py-2 text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                Saved chats will appear here.
+              </p>
+            ) : (
+              sessions.map((session) => (
+                <button
+                  key={session.id}
+                  onClick={() => loadSession(session.id)}
+                  className={[
+                    "w-full rounded-xl px-3 py-2 text-left text-sm transition",
+                    activeSessionId === session.id
+                      ? "bg-indigo-600 text-white"
+                      : "bg-gray-50 text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700",
+                  ].join(" ")}
+                >
+                  <span className="block truncate font-medium">{session.title}</span>
+                  <span className={activeSessionId === session.id ? "text-xs text-indigo-100" : "text-xs text-gray-400"}>
+                    {session.message_count || 0} messages
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
+        </aside>
+
         <motion.div
           variants={cardVariant}
           initial="hidden"
@@ -561,7 +750,14 @@ export const Chat: React.FC = () => {
         >
           {/* Messages */}
           <div className="h-[70vh] overflow-y-auto p-5 sm:p-6 space-y-4">
-            {messages.length === 0 && !isLoading && !error && (
+            {isSessionLoading && (
+              <div className="h-full flex flex-col items-center justify-center text-center text-gray-500 dark:text-gray-400">
+                <Loader2 className="mb-3 h-6 w-6 animate-spin text-indigo-500" />
+                <div className="font-medium">Loading saved chat</div>
+              </div>
+            )}
+
+            {messages.length === 0 && !isLoading && !isSessionLoading && !error && (
               <div className="h-full flex flex-col items-center justify-center text-center text-gray-500 dark:text-gray-400">
                 <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-3">
                   <Send className="w-5 h-5" />
@@ -673,10 +869,10 @@ export const Chat: React.FC = () => {
                 <button
                   type="button"
                   onClick={isListening ? stopListening : startListening}
-                  disabled={isLoading || isProcessing || !srSupported}
+                  disabled={isLoading || isSessionLoading || isProcessing || !srSupported}
                   className={[
                     "h-11 px-3 rounded-2xl inline-flex items-center justify-center gap-2 transition-colors",
-                    isLoading || isProcessing || !srSupported
+                    isLoading || isSessionLoading || isProcessing || !srSupported
                       ? "opacity-50 cursor-not-allowed bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
                       : isListening
                       ? "bg-red-600 hover:bg-red-700 text-white"
@@ -712,7 +908,7 @@ export const Chat: React.FC = () => {
 
                 <button
                   type="submit"
-                  disabled={isLoading || inputMessage.trim().length === 0}
+                  disabled={disabledSend}
                   className="h-11 px-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white inline-flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="Send message"
                   title="Send"

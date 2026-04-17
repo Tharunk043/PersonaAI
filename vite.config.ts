@@ -11,7 +11,7 @@ export default defineConfig({
         secure: false 
       },
       "/api2": { 
-        target: "http://localhost:8080", 
+        target: "http://127.0.0.1:8787", 
         changeOrigin: true, 
         secure: false 
       }

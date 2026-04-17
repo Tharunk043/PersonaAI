@@ -3,6 +3,7 @@ import { motion, useMotionValue, useSpring, useScroll, useTransform, useInView }
 import { useNavigate } from "react-router-dom";
 import { Bot, Globe, BookOpen, Brain, Sparkles, ArrowRight, Zap, Shield, Cpu, MessageSquare, Play, ChevronDown, Star, Users, BarChart3 } from "lucide-react";
 import SearchBar from "../components/SearchBar";
+import { useAuth } from "./AuthContext";
 
 // ═══════════════════════════════════
 // Animated grid background
@@ -254,10 +255,19 @@ const testimonials = [
 const Home: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
   const heroY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+  const startBuilding = () => {
+    if (isAuthenticated) {
+      navigate("/studio");
+      return;
+    }
+
+    navigate("/login", { state: { from: "/studio" } });
+  };
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-50 text-slate-900 dark:bg-gray-950 dark:text-slate-100">
@@ -319,7 +329,7 @@ const Home: React.FC = () => {
               <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }} className="mt-8 flex items-center justify-center gap-4">
                 <Magnetic>
                   <button
-                    onClick={() => navigate("/login")}
+                    onClick={startBuilding}
                     className="group relative inline-flex items-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 px-8 py-3.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-xl hover:shadow-indigo-500/30"
                   >
                     <span className="relative z-10">Get Started Free</span>
@@ -546,7 +556,7 @@ const Home: React.FC = () => {
                   <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
                     <Magnetic>
                       <button
-                        onClick={() => navigate("/login")}
+                        onClick={startBuilding}
                         className="group relative inline-flex items-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 px-8 py-3.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-xl"
                       >
                         <span className="relative z-10">Start Building — It&apos;s Free</span>
