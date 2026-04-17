@@ -203,6 +203,7 @@ export const Chat: React.FC = () => {
     const boot = async () => {
       setIsSessionLoading(true);
       try {
+        const sessionIdFromUrl = searchParams.get("session");
         console.log("[Chat] Booting... URL session:", sessionIdFromUrl, "State prompt:", !!initialPersonaPrompt);
 
         if (initialPersonaPrompt) {
