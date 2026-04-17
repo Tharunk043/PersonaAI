@@ -138,6 +138,26 @@ const DebateRoom: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     }
   };
 
+  const resumeDebate = () => {
+    if (!currentSessionId || messages.length === 0) return;
+    setIsDebating(true);
+    isDebatingRef.current = true;
+    setDebateError(null);
+    
+    // Determine next speaker: if last msg was from P1 (idx 1, 3, 5...), next is 2.
+    // Index 0 is always system.
+    const nextSpeaker = messages.length % 2 === 1 ? 1 : 2;
+    triggerNextSpeaker(nextSpeaker, messages.map(m => m.text), currentSessionId);
+  };
+
+  const resetDebate = () => {
+    stopDebate();
+    setMessages([]);
+    setCurrentSessionId(null);
+    setTopic("");
+    setActiveTab('new');
+  };
+
   const guessGender = (name: string) => {
     const lower = name.toLowerCase();
     if (/(woman|female|girl|lady|queen|princess|mom|mother|aunt|sister|mrs|miss|ms|witch)/i.test(lower)) return 'female';
@@ -437,6 +457,24 @@ DO NOT prepend your response with your name like "${pName}:", just output the di
 
             {/* Control Bar */}
             <div className="absolute top-4 right-4 z-10 flex gap-2">
+              {!isDebating && messages.length > 0 && (
+                <button 
+                  onClick={resumeDebate}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-500 transition-all shadow-lg"
+                >
+                  ▶️ Resume Debate
+                </button>
+              )}
+              
+              {!isDebating && (
+                <button 
+                  onClick={resetDebate}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all"
+                >
+                  🆕 New / Clear
+                </button>
+              )}
+
               {!isDebating && (
                 <button 
                   onClick={() => setAudioEnabled(!audioEnabled)}
