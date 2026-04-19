@@ -547,7 +547,7 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`🎬 Server ready on http://localhost:${PORT} | MongoDB: Connected`);
   
   // Keep-alive ping logic
-  const URL = "https://persona-ai-backend-709f.onrender.com/api/health";
+  const URL = "https://persona-ai-backend-d69i.onrender.com/api/health";
   setInterval(() => {
     fetch(URL)
       .then(() => console.log(`💓 Keep-alive ping sent to ${URL}`))
