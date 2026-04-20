@@ -269,6 +269,21 @@ const Home: React.FC = () => {
     navigate("/login", { state: { from: "/chat" } });
   };
 
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const query = searchQuery.toLowerCase();
+    
+    const personaMatches = featuredPersonas
+      .filter(p => p.name.toLowerCase().includes(query) || p.description.toLowerCase().includes(query))
+      .map(p => ({ ...p, type: 'persona' as const }));
+
+    const actionMatches = quickActions
+      .filter(a => a.title.toLowerCase().includes(query) || a.subtitle.toLowerCase().includes(query))
+      .map(a => ({ ...a, type: 'action' as const }));
+
+    return [...actionMatches, ...personaMatches].slice(0, 6);
+  }, [searchQuery]);
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-50 text-slate-900 dark:bg-gray-950 dark:text-slate-100">
       <GridBackground />
@@ -319,10 +334,48 @@ const Home: React.FC = () => {
               </motion.p>
 
               {/* Search */}
-              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="mt-8">
+              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="mt-8 relative">
                 <GlassCard className="p-2">
                   <SearchBar value={searchQuery} onChange={setSearchQuery} />
                 </GlassCard>
+
+                {/* Search Results Dropdown */}
+                <AnimatePresence>
+                  {searchResults.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className="absolute top-full mt-4 left-0 right-0 z-50 rounded-3xl border border-white/20 bg-white/80 p-3 shadow-2xl backdrop-blur-2xl dark:bg-gray-900/80"
+                    >
+                      <div className="space-y-1">
+                        {searchResults.map((result, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => {
+                              if ('path' in result) navigate(result.path);
+                              else navigate('/chat', { state: { personaName: result.name } });
+                              setSearchQuery("");
+                            }}
+                            className="flex w-full items-center gap-4 rounded-2xl p-3 text-left transition-colors hover:bg-white/50 dark:hover:bg-white/5 group"
+                          >
+                            <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl ${'gradient' in result ? `bg-gradient-to-br ${result.gradient}` : 'bg-white/60 dark:bg-white/10'} text-white shadow-lg`}>
+                              {'icon' in result && React.isValidElement(result.icon) ? result.icon : 'icon' in result && typeof result.icon !== 'string' ? React.createElement(result.icon as any, { className: "h-5 w-5" }) : <Sparkles className="h-5 w-5" />}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-bold">{'title' in result ? result.title : result.name}</p>
+                              <p className="truncate text-xs text-slate-500 dark:text-slate-400">{'subtitle' in result ? result.subtitle : result.description}</p>
+                            </div>
+                            <div className="ml-auto flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Jump to</span>
+                              <ArrowRight className="h-4 w-4 text-indigo-500" />
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
 
               {/* CTA buttons */}
