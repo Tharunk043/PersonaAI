@@ -79,12 +79,15 @@ export const Chat: React.FC = () => {
 
   // Title from personaPrompt
   const personaTitle = useMemo(() => {
+    const activeSession = sessions.find(s => s.id === activeSessionId);
+    if (activeSession) return activeSession.title;
+
     if (initialPersonaName) return initialPersonaName;
     if (!personaPrompt) return "AI Persona";
     const firstLine =
       personaPrompt.split("\n").find((l) => l.trim().length > 0) || "AI Persona";
     return firstLine.slice(0, 80);
-  }, [personaPrompt, initialPersonaName]);
+  }, [personaPrompt, initialPersonaName, sessions, activeSessionId]);
 
   // Deploy / share
   const [showDeploy, setShowDeploy] = useState(false);
