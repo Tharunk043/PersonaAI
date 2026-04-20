@@ -322,7 +322,7 @@ app.delete("/api/chat-sessions/:id", authenticateToken, async (req, res) => {
 // ── Groq / Decision Helper ──
 const groq = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
 
-app.get("/api2/ping", (_req, res) => res.json({ ok: true, at: Date.now() }));
+app.get("/api2/ping", (_req, res) => res.json({ ok: true, at: Date.now(), groqReady: !!groq }));
 
 app.post("/api2/ask", async (req, res) => {
   const { prompt, messages: history } = req.body || {};
@@ -330,26 +330,50 @@ app.post("/api2/ask", async (req, res) => {
     return res.status(400).json({ error: "No prompt or messages provided" });
   }
   if (!groq) {
-    return res.status(500).json({ error: "Groq API key not configured" });
+    return res.status(500).json({ error: "Groq API key not configured on server" });
   }
 
-  try {
-    const messages = history || [
-      { role: "system", content: "You are a decision helper. Respond clearly and logically." },
-      { role: "user", content: prompt },
-    ];
+  const messages = history || [
+    { role: "system", content: "You are a decision helper. Respond clearly and logically." },
+    { role: "user", content: prompt },
+  ];
 
-    const chat = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      messages,
-      temperature: 0.4,
-    });
+  // Fallback model chain — try multiple models in sequence
+  const MODELS = [
+    "llama-3.3-70b-versatile",
+    "llama3-8b-8192",
+    "llama-3.1-8b-instant",
+    "gemma2-9b-it",
+  ];
 
-    return res.json({ answer: chat.choices?.[0]?.message?.content || "No answer generated", model: "llama-3.3-70b-versatile" });
-  } catch (err) {
-    console.error("[Groq] Error:", err);
-    return res.status(500).json({ error: "Failed to get response from AI" });
+  let lastError = null;
+  for (const model of MODELS) {
+    try {
+      const chat = await groq.chat.completions.create({
+        model,
+        messages,
+        temperature: 0.4,
+        max_tokens: 1024,
+      });
+      const answer = chat.choices?.[0]?.message?.content;
+      if (!answer) throw new Error("Empty response from model");
+      return res.json({ answer, model });
+    } catch (err) {
+      lastError = err;
+      const status = err?.status || err?.statusCode;
+      const msg = err?.message || String(err);
+      console.error(`[Groq] Model ${model} failed (${status}): ${msg}`);
+      // Only try next model on rate-limit (429) or service unavailable (503/500)
+      if (status !== 429 && status !== 503 && status !== 500) break;
+    }
   }
+
+  const errMsg = lastError?.error?.message || lastError?.message || "Failed to get response from AI";
+  const errStatus = lastError?.status || lastError?.statusCode || 500;
+  console.error("[Groq] All models failed. Last error:", lastError);
+  return res.status(errStatus >= 400 && errStatus < 600 ? errStatus : 500).json({
+    error: errMsg,
+  });
 });
 
 // ═══════════════════════════════════════════════════════════════
