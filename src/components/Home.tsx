@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { motion, AnimatePresence, useMotionValue, useSpring, useScroll, useTransform, useInView } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Bot, Globe, BookOpen, Brain, Sparkles, ArrowRight, Zap, Shield, Cpu, MessageSquare, Play, ChevronDown, Star, Users, BarChart3 } from "lucide-react";
