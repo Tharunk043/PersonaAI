@@ -317,8 +317,12 @@ export const Chat: React.FC = () => {
 
     rec.onerror = (e: any) => {
       const code = e?.error;
-      if (code && code !== "no-speech" && code !== "aborted" && code !== "network") {
-        setError(e?.message || "Voice recognition error.");
+      const ignoreCodes = ["no-speech", "aborted"];
+      if (code && !ignoreCodes.includes(code)) {
+        let msg = "Voice recognition error.";
+        if (code === "not-allowed") msg = "Microphone access denied. Please check site permissions.";
+        if (code === "network") msg = "Network error during voice recognition.";
+        setError(msg);
       }
       setIsListening(false);
       setIsProcessing(false);
@@ -962,7 +966,13 @@ export const Chat: React.FC = () => {
                   <kbd className="px-1 py-0.5 rounded border">Shift</kbd> +{" "}
                   <kbd className="px-1 py-0.5 rounded border">Enter</kbd> for a new line
                 </span>
-                <span>{voiceMode ? "Voice mode is ON (TTS + Mic)" : "Voice mode is OFF"}</span>
+                                <button 
+                  type="button"
+                  onClick={toggleVoiceMode}
+                  className={`hover:underline font-medium transition-colors ${voiceMode ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400 hover:text-indigo-500'}`}
+                >
+                  {voiceMode ? "Voice mode is ON (TTS + Mic)" : "Voice mode is OFF - Click to turn ON"}
+                </button>
               </div>
             </div>
           </form>
