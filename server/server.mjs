@@ -415,15 +415,15 @@ const ETHEREAL_WALKING_CLIPS = [
 ];
 
 const CLIPS = [
-  { kw: ["ocean","sea","beach","waves","coast","water","surf"], url: "https://videos.pexels.com/video-files/3822765/3822765-hd_1920_1080_24fps.mp4" },
-  { kw: ["city","street","urban","neon","night","traffic","skyline","downtown"], url: "https://videos.pexels.com/video-files/9278563/9278563-uhd_2560_1440_30fps.mp4" },
-  { kw: ["forest","mountain","nature","river","waterfall","himalaya","trees","green"], url: "https://videos.pexels.com/video-files/6772137/6772137-hd_1920_1080_30fps.mp4" },
-  { kw: ["fire","smoke","storm","lightning","thunder","rain","volcano"], url: "https://videos.pexels.com/video-files/3326168/3326168-hd_1920_1080_24fps.mp4" },
-  { kw: ["tech","technology","code","coding","programming","ai","hud","matrix","neural"], url: "https://videos.pexels.com/video-files/3129957/3129957-uhd_2560_1440_25fps.mp4" },
-  { kw: ["cat","dog","animal","bird","wildlife","pet","kitten","puppy"], url: "https://videos.pexels.com/video-files/4206587/4206587-uhd_2560_1440_30fps.mp4" },
-  { kw: ["space","galaxy","stars","nebula","astronomy","cosmos"], url: "https://videos.pexels.com/video-files/853800/853800-hd_1920_1080_25fps.mp4" },
-  { kw: ["desert","sand","dune","camel"], url: "https://videos.pexels.com/video-files/3815340/3815340-hd_1920_1080_24fps.mp4" },
-  { kw: ["snow","ice","winter","glacier"], url: "https://videos.pexels.com/video-files/5248232/5248232-hd_1920_1080_24fps.mp4" },
+  { kw: ["ocean","sea","beach","waves","coast","water","surf"], url: "https://videos.pexels.com/video-files/29285421/12630603_360_640_60fps.mp4" },
+  { kw: ["city","street","urban","neon","night","traffic","skyline","downtown"], url: "https://videos.pexels.com/video-files/34960003/14809225_640_360_30fps.mp4" },
+  { kw: ["forest","mountain","nature","river","waterfall","himalaya","trees","green"], url: "https://videos.pexels.com/video-files/11986207/11986207-hd_1920_1080_30fps.mp4" },
+  { kw: ["fire","smoke","storm","lightning","thunder","rain","volcano"], url: "https://videos.pexels.com/video-files/32168330/13717340_682_360_30fps.mp4" },
+  { kw: ["tech","technology","code","coding","programming","ai","hud","matrix","neural"], url: "https://videos.pexels.com/video-files/7278622/7278622-sd_426_226_24fps.mp4" },
+  { kw: ["cat","dog","animal","bird","wildlife","pet","kitten","puppy"], url: "https://videos.pexels.com/video-files/36241097/15369419_360_640_60fps.mp4" },
+  { kw: ["space","galaxy","stars","nebula","astronomy","cosmos"], url: "https://videos.pexels.com/video-files/30442061/13045437_640_360_30fps.mp4" },
+  { kw: ["desert","sand","dune","camel"], url: "https://videos.pexels.com/video-files/30783914/13167280_360_640_30fps.mp4" },
+  { kw: ["snow","ice","winter","glacier"], url: "https://videos.pexels.com/video-files/36351394/15417889_360_640_30fps.mp4" },
 ];
 
 const DEFAULT_DEMO_URL = "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
