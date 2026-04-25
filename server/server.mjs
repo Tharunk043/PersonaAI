@@ -24,9 +24,16 @@ const JWT_SECRET = process.env.JWT_SECRET || "persona-studio-secret-change-me";
 // ═══════════════════════════════════════════════════════════════
 // MongoDB database setup
 // ═══════════════════════════════════════════════════════════════
+let dbConnected = false;
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('✅ MongoDB Connected'))
-  .catch(err => console.error('❌ MongoDB Connection Error:', err));
+  .then(() => {
+    console.log('✅ MongoDB Connected');
+    dbConnected = true;
+  })
+  .catch(err => {
+    console.error('❌ MongoDB Connection Error:', err.message);
+    dbConnected = false;
+  });
 
 // ── Auth helpers ──
 function generateToken(user) {
@@ -79,6 +86,14 @@ app.post("/api/auth/login", async (req, res) => {
       return res.status(400).json({ error: "Email and password are required" });
     }
 
+    // Mock login for local testing if DB is down
+    if (!dbConnected) {
+      console.log("[Auth] DB is down, using mock login for:", email);
+      const mockUser = { _id: "mock_id", name: "Tharun (Mock)", email };
+      const token = generateToken(mockUser);
+      return res.json({ user: mockUser, token });
+    }
+
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ error: "Invalid email or password" });
@@ -99,6 +114,9 @@ app.post("/api/auth/login", async (req, res) => {
 
 app.get("/api/auth/me", authenticateToken, async (req, res) => {
   try {
+    if (!dbConnected) {
+      return res.json({ user: { id: req.user.id, name: "Tharun (Mock)", email: req.user.email, created_at: new Date() } });
+    }
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ error: "User not found" });
     return res.json({ user: { id: user._id, name: user.name, email: user.email, created_at: user.createdAt } });
@@ -384,6 +402,7 @@ const API_KEY = process.env.HEYGEN_API_KEY;
 const PEXELS_KEY = process.env.PEXELS_API_KEY;
 const HF_TOKEN = process.env.HF_API_TOKEN || "";
 const REPLICATE_TOKEN = process.env.REPLICATE_API_TOKEN || "";
+const FAL_KEY = process.env.FAL_KEY || "";
 
 const DEFAULT_AVATAR_ID = process.env.DEFAULT_HEYGEN_AVATAR_ID || null;
 const DEFAULT_VOICE_ID  = process.env.DEFAULT_HEYGEN_VOICE_ID  || null;
@@ -396,16 +415,15 @@ const ETHEREAL_WALKING_CLIPS = [
 ];
 
 const CLIPS = [
-  { kw: ["ocean","sea","beach","waves","coast","water","surf"], url: "https://samplelib.com/lib/preview/mp4/sample-5s.mp4" },
-  { kw: ["city","street","urban","neon","night","traffic","skyline","downtown"], url: "https://filesamples.com/samples/video/mp4/sample_640x360.mp4" },
-  { kw: ["forest","mountain","nature","river","waterfall","himalaya","trees","green"], url: "https://file-examples.com/storage/fe9a7e3b2c0a4f7d9b2f0fd/2017/04/file_example_MP4_480_1_5MG.mp4" },
-  { kw: ["fire","smoke","storm","lightning","thunder","rain","volcano"], url: "https://samplelib.com/lib/preview/mp4/sample-10s.mp4" },
-  { kw: ["tech","technology","code","coding","programming","ai","hud","matrix","neural"], url: "https://file-examples.com/storage/fe9a7e3b2c0a4f7d9b2f0fd/2017/04/file_example_MP4_640_3MG.mp4" },
-  { kw: ["cat","dog","animal","bird","wildlife","pet","kitten","puppy"], url: "https://media.w3.org/2010/05/sintel/trailer.mp4" },
-  { kw: ["space","galaxy","stars","nebula","astronomy","cosmos"], url: "https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4" },
-  { kw: ["desert","sand","dune","camel"], url: "https://dash.akamaized.net/envivio/EnvivioDash3/manifest.mpd" },
-  { kw: ["snow","ice","winter","glacier"], url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4" },
-  { kw: ["traffic","cars","road","highway"], url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4" },
+  { kw: ["ocean","sea","beach","waves","coast","water","surf"], url: "https://videos.pexels.com/video-files/3822765/3822765-hd_1920_1080_24fps.mp4" },
+  { kw: ["city","street","urban","neon","night","traffic","skyline","downtown"], url: "https://videos.pexels.com/video-files/9278563/9278563-uhd_2560_1440_30fps.mp4" },
+  { kw: ["forest","mountain","nature","river","waterfall","himalaya","trees","green"], url: "https://videos.pexels.com/video-files/6772137/6772137-hd_1920_1080_30fps.mp4" },
+  { kw: ["fire","smoke","storm","lightning","thunder","rain","volcano"], url: "https://videos.pexels.com/video-files/3326168/3326168-hd_1920_1080_24fps.mp4" },
+  { kw: ["tech","technology","code","coding","programming","ai","hud","matrix","neural"], url: "https://videos.pexels.com/video-files/3129957/3129957-uhd_2560_1440_25fps.mp4" },
+  { kw: ["cat","dog","animal","bird","wildlife","pet","kitten","puppy"], url: "https://videos.pexels.com/video-files/4206587/4206587-uhd_2560_1440_30fps.mp4" },
+  { kw: ["space","galaxy","stars","nebula","astronomy","cosmos"], url: "https://videos.pexels.com/video-files/853800/853800-hd_1920_1080_25fps.mp4" },
+  { kw: ["desert","sand","dune","camel"], url: "https://videos.pexels.com/video-files/3815340/3815340-hd_1920_1080_24fps.mp4" },
+  { kw: ["snow","ice","winter","glacier"], url: "https://videos.pexels.com/video-files/5248232/5248232-hd_1920_1080_24fps.mp4" },
 ];
 
 const DEFAULT_DEMO_URL = "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
@@ -435,11 +453,31 @@ function bestPexelsFile(video) {
   return mp4s[0]?.link || mp4s[0]?.file || null;
 }
 
-async function pexelsSearchClip(prompt) {
+async function getSearchKeywords(prompt) {
+  if (!groq || !prompt || prompt.length < 5) return prompt;
+  try {
+    const chat = await groq.chat.completions.create({
+      model: "llama-3.1-8b-instant",
+      messages: [
+        { role: "system", content: "Extract 2-3 essential search keywords from the prompt for a stock video search. Return ONLY the keywords separated by spaces." },
+        { role: "user", content: prompt }
+      ],
+      max_tokens: 20
+    });
+    return chat.choices?.[0]?.message?.content?.trim() || prompt;
+  } catch (err) {
+    console.error("[Keywords] LLM failed:", err.message);
+    return prompt;
+  }
+}
+
+async function pexelsSearchClip(prompt, orientation = "landscape") {
   if (!PEXELS_KEY) return null;
   try {
-    const q = encodeURIComponent(prompt || "nature");
-    const url = `https://api.pexels.com/videos/search?query=${q}&per_page=3`;
+    const keywords = await getSearchKeywords(prompt);
+    console.log(`[Pexels] Searching for keywords: "${keywords}" (${orientation}) (original: "${prompt}")`);
+    const q = encodeURIComponent(keywords || "nature");
+    const url = `https://api.pexels.com/videos/search?query=${q}&per_page=5&orientation=${orientation}`;
     const r = await fetch(url, { headers: { Authorization: PEXELS_KEY } });
     if (!r.ok) return null;
     const j = await r.json();
@@ -471,18 +509,67 @@ app.post("/api/memorial-video", async (req, res) => {
 
 app.post("/api/generate-video", async (req, res) => {
   console.log("[VideoGen] POST request received. Body keys:", Object.keys(req.body || {}));
-  const { prompt, avatar_id, voice_id, dimension, provider } = req.body || {};
+  const { prompt, avatar_id, voice_id, dimension, provider, aspectRatio } = req.body || {};
   if (!prompt || String(prompt).trim().length < 2) {
     return res.status(400).json({ error: "Prompt/script is required" });
   }
 
+  // Aspect Ratio Mapping
+  let orientation = "landscape";
+  if (aspectRatio === "9:16") orientation = "portrait";
+  else if (aspectRatio === "1:1") orientation = "square";
+
   if (provider === "web" || provider === "demo") {
-    const webUrl = (await pexelsSearchClip(prompt)) || pickFromMap(prompt);
+    const webUrl = (await pexelsSearchClip(prompt, orientation)) || pickFromMap(prompt);
     return sendDemo(res, webUrl, PEXELS_KEY ? "web-pexels" : "web-map");
   }
 
+  // Fal.ai Video Generation (Luma, Pika, Runway, etc.)
+  if (["luma", "pika", "runway", "veo"].includes(provider)) {
+    if (!FAL_KEY) {
+      const webUrl = (await pexelsSearchClip(prompt, orientation)) || pickFromMap(prompt);
+      return sendDemo(res, webUrl, "no-fal-key-web");
+    }
+
+    try {
+      // Map provider to fal model
+      const modelMap = {
+        luma: "fal-ai/luma-dream-machine",
+        pika: "fal-ai/pika",
+        runway: "fal-ai/kling-video/v1.6/standard/text-to-video",
+        veo: "fal-ai/luma-dream-machine", // fallback
+      };
+      const model = modelMap[provider] || "fal-ai/luma-dream-machine";
+      
+      console.log(`[FalAI] Generating with ${model} for prompt: ${prompt} (${aspectRatio})`);
+      const r = await fetch(`https://fal.run/${model}`, {
+        method: "POST",
+        headers: { "Authorization": `Key ${FAL_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          prompt,
+          aspect_ratio: aspectRatio || "16:9"
+        })
+      });
+
+      if (!r.ok) throw new Error(`Fal error ${r.status}`);
+      const data = await r.json();
+      
+      // Some fal models return a request_id for polling, some return video.url immediately
+      if (data.video?.url) {
+        return sendDemo(res, data.video.url, `fal-${provider}`);
+      } else if (data.request_id) {
+        return res.json({ jobId: data.request_id, provider: "fal" });
+      }
+      throw new Error("No video URL or request ID from Fal");
+    } catch (e) {
+      console.error("[FalAI] Error:", e.message);
+      const webUrl = (await pexelsSearchClip(prompt, orientation)) || pickFromMap(prompt);
+      return sendDemo(res, webUrl, `fal-fail-web: ${e.message}`);
+    }
+  }
+
   if (!API_KEY) {
-    const webUrl = (await pexelsSearchClip(prompt)) || pickFromMap(prompt);
+    const webUrl = (await pexelsSearchClip(prompt, orientation)) || pickFromMap(prompt);
     return sendDemo(res, webUrl, "no-heygen-key-web");
   }
 
@@ -525,7 +612,30 @@ app.get("/api/generate-video", async (req, res) => {
   try {
     const jobId = req.query.jobId;
     if (!jobId) return sendDemo(res, DEFAULT_DEMO_URL, "no-jobid-web");
-    if (!API_KEY) return sendDemo(res, DEFAULT_DEMO_URL, "no-heygen-key-web");
+    if (!API_KEY && !FAL_KEY) return sendDemo(res, DEFAULT_DEMO_URL, "no-keys-web");
+
+    // Handle Fal polling if needed
+    if (jobId.includes("-") || jobId.length > 20) {
+      try {
+        const r = await fetch(`https://fal.run/requests/${jobId}`, {
+          headers: { "Authorization": `Key ${FAL_KEY}` }
+        });
+        if (!r.ok) throw new Error(`Fal status error ${r.status}`);
+        const data = await r.json();
+        const statusMap = { "IN_PROGRESS": "running", "COMPLETED": "succeeded", "FAILED": "failed", "IN_QUEUE": "queued" };
+        const status = statusMap[data.status] || "running";
+        
+        return res.json({
+          status,
+          url: data.payload?.video?.url || data.payload?.url,
+          progress: status === "succeeded" ? 100 : (status === "running" ? 50 : 10),
+          message: data.status
+        });
+      } catch (e) {
+        console.error("[Fal Polling] Error:", e.message);
+        // fall through to heygen or return error
+      }
+    }
 
     const r = await fetch(`${HEYGEN}/v2/video/status?video_id=${encodeURIComponent(jobId)}`, http());
     if (!r.ok) return sendDemo(res, DEFAULT_DEMO_URL, `heygen-status-${r.status}-web`);
